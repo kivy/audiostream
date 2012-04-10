@@ -120,7 +120,7 @@ cdef class AudioSample:
     cdef int channel
     cdef Mix_Chunk *raw_chunk
     cdef AudioStream stream
-    cdef unsigned int index
+    cdef public unsigned int index
 
     def __cinit__(self, *args):
         self.channel = -1
