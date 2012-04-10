@@ -16,9 +16,13 @@ library_dirs = []
 include_dirs = ['/usr/include/SDL']
 extra_objects = []
 extra_compile_args=['-ggdb', '-O0']
-
 ext_files = ['audiostream.pyx']
-include_dirs.append('/usr/include/SDL')
+
+if not have_cython:
+    ext_files = [x.replace('.pyx', '.c') for x in ext_files]
+    libraries = ['sdl', 'sdl_mixer']
+else:
+    include_dirs.append('/usr/include/SDL')
 
 ext = Extension(
     'audiostream',
@@ -40,5 +44,4 @@ setup(
     description='An audio library designed to let the user streaming to speaker',
     ext_modules=[ext],
     cmdclass=cmdclass,
-    packages=['audiostream'],
 )
