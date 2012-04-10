@@ -88,6 +88,7 @@ cdef extern from "SDL_mixer.h" nogil:
     void Mix_CloseAudio()
     int Mix_PlayChannel(int channel, Mix_Chunk *chunk, int loops)
     int Mix_HaltChannel(int channel)
+    char *Mix_GetError()
     ctypedef void (*Mix_EffectFunc_t)(int, void *, int, void *)
     ctypedef void (*Mix_EffectDone_t)(int, void *)
     int Mix_RegisterEffect(int chan, Mix_EffectFunc_t f, Mix_EffectDone_t d, void * arg)
@@ -150,16 +151,24 @@ cdef class AudioSample:
         if self.raw_chunk == NULL:
             raise AudioException('AudioSample: unable to load silence')
         print 'alloc', self.channel
-        SDL_LockAudio()
-        Mix_RegisterEffect(self.channel, audio_callback, NULL, <void *>self)
-        SDL_UnlockAudio()
+
+    cdef void registereffect(self) with gil:
+        with nogil:
+            SDL_LockAudio()
+            Mix_RegisterEffect(self.channel, audio_callback, NULL, <void *>self)
+            SDL_UnlockAudio()
 
     def play(self):
+        cdef int ret
         if self.channel == -1:
             self.alloc()
         self.index = 0
+        self.registereffect()
         with nogil:
-            Mix_PlayChannel(self.channel, self.raw_chunk, -1)
+            ret = Mix_PlayChannel(self.channel, self.raw_chunk, -1)
+
+        if ret == -1:
+            print 'error', <bytes>Mix_GetError()
 
     def stop(self):
         with nogil:
