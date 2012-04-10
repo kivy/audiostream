@@ -101,13 +101,13 @@ cdef extern from "SDL_mixer.h" nogil:
 
 cdef void audio_callback(int chan, void *stream, int l, void *userdata) with gil:
     cdef AudioSample sample = <AudioSample>userdata
-    cdef bytes b = sample.audio_callback(sample, sample.index, l)
+    cdef bytes b = <bytes>sample.audio_callback(sample, sample.index, l)
     if b is None:
         return
     if len(b) < l:
         print 'AudioSample: not enougth data from', sample
         return
-    memcpy(stream, <void *>b, l)
+    memcpy(stream, <void *><char *>b, l)
     sample.index += l
 
 class AudioException(Exception):

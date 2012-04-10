@@ -12,19 +12,20 @@ def sine_wave(frequency=440.0, framerate=44100, amplitude=0.5):
     return (lookup_table[i%period] for i in count(0))
 
 gen_left = sine_wave()
-gen_right = sine_wave(frequency=400.0)
+gen_right = sine_wave(frequency=220.0)
 
 def sin_callback(sample, index, bufsize):
     # must generate a buffer of l length
     buf = []
+    f = (2 ** 16) / pi
     while len(buf) < bufsize / 2:
-        vl = int(gen_left.next() / pi * (2 ** 16))
-        vr = int(gen_right.next() / pi * (2 ** 16))
+        vl = int(gen_left.next() * f)
+        vr = int(gen_right.next() * f)
         buf.append(vl)
         buf.append(vr)
     return pack('h' * len(buf), *buf)
 
-stream = AudioStream(channels=2, buffersize=4096)
+stream = AudioStream(channels=2, buffersize=1024)
 
 # add a new sample to be played
 sin_sample = AudioSample(sin_callback)
@@ -34,4 +35,4 @@ sin_sample.play()
 sleep(5)
 
 # later, stop the stream
-stream.stop()
+sin_sample.stop()
