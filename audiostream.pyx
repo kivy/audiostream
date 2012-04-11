@@ -100,42 +100,160 @@ cdef extern from "SDL_mixer.h" nogil:
     int Mix_Volume(int chan, int volume)
 
 
-cdef void audio_callback(int chan, void *stream, int l, void *userdata) with gil:
-    cdef AudioSample sample = <AudioSample>userdata
-    cdef bytes b = <bytes>sample.audio_callback(sample, sample.index, l)
-    if b is None:
-        return
-    if len(b) < l:
-        print 'AudioSample: not enougth data from', sample
-        return
-    memcpy(stream, <void *><char *>b, l)
-    sample.index += l
-
 class AudioException(Exception):
     pass
 
 
+ctypedef struct RingBufferChunk:
+    char *data
+    char *mem
+    int size
+    RingBufferChunk *next
+
+ctypedef struct RingBuffer:
+    int maxlen
+    SDL_cond *cond
+    SDL_mutex *condmtx
+    SDL_mutex *qmtx
+    int size
+    RingBufferChunk *first
+    RingBufferChunk *last
+
+cdef RingBuffer *rb_new(int maxlen) nogil:
+    cdef RingBuffer *rb = <RingBuffer *>calloc(1, sizeof(RingBuffer))
+    rb.cond = SDL_CreateCond()
+    rb.condmtx = SDL_CreateMutex()
+    rb.qmtx = SDL_CreateMutex()
+    rb.maxlen = maxlen
+    return rb
+
+cdef RingBufferChunk *rb_chunk_new(int size, char *mem) nogil:
+    cdef RingBufferChunk *chunk = <RingBufferChunk *>malloc(sizeof(RingBufferChunk))
+    chunk.mem = chunk.data = <char *>malloc(size)
+    memcpy(chunk.mem, mem, size)
+    chunk.size = size
+    chunk.next = NULL
+    return chunk
+
+cdef void rb_chunk_free(RingBufferChunk *chunk) nogil:
+    free(chunk.mem)
+
+cdef void rb_free(RingBuffer *rb) nogil:
+    cdef RingBufferChunk *chunk = rb.first
+    while chunk != NULL:
+        rb.first = chunk.next
+        rb_chunk_free(chunk)
+        chunk = rb.first
+    SDL_DestroyMutex(rb.condmtx)
+    SDL_DestroyMutex(rb.qmtx)
+    SDL_DestroyCond(rb.cond)
+
+cdef void rb_appendleft(RingBuffer *rb, RingBufferChunk *chunk) nogil:
+    SDL_LockMutex(rb.qmtx)
+    if rb.first == NULL:
+        rb.first = rb.last = chunk
+    else:
+        chunk.next = rb.first
+        rb.first = chunk
+    rb.size += chunk.size
+    SDL_UnlockMutex(rb.qmtx)
+
+cdef void rb_append(RingBuffer *rb, RingBufferChunk *chunk) nogil:
+    SDL_LockMutex(rb.qmtx)
+    if rb.last == NULL:
+        rb.last = rb.first = chunk
+    else:
+        rb.last.next = chunk
+        rb.last = chunk
+    rb.size += chunk.size
+    SDL_UnlockMutex(rb.qmtx)
+
+cdef RingBufferChunk *rb_popleft(RingBuffer *rb) nogil:
+    cdef RingBufferChunk *chunk = NULL
+    SDL_LockMutex(rb.qmtx)
+    chunk = rb.first
+    if chunk == NULL:
+        return NULL
+    rb.first = chunk.next
+    if rb.first == NULL:
+        rb.last = NULL
+    rb.size -= chunk.size
+    SDL_UnlockMutex(rb.qmtx)
+    chunk.next = NULL
+    return chunk
+
+cdef void rb_write(RingBuffer *rb, int size, char *cbuf) nogil:
+    cdef RingBufferChunk *chunk = rb_chunk_new(size, cbuf)
+    SDL_LockMutex(rb.condmtx)
+    while rb.size > rb.maxlen:
+        SDL_CondWait(rb.cond, rb.condmtx)
+    SDL_UnlockMutex(rb.condmtx)
+    rb_append(rb, chunk)
+
+cdef char *rb_read(RingBuffer *rb, int size) nogil:
+    cdef RingBufferChunk *chunk = NULL
+    cdef char *mem = NULL, *p = NULL
+
+    SDL_LockMutex(rb.qmtx)
+    if rb.size < size:
+        SDL_UnlockMutex(rb.qmtx)
+        return NULL
+    SDL_UnlockMutex(rb.qmtx)
+
+    p = mem = <char *>malloc(size)
+    while size > 0:
+        chunk = rb_popleft(rb)
+        if chunk == NULL:
+            free(mem)
+            return NULL
+
+        if chunk.size <= size:
+            # full copy ?
+            memcpy(p, chunk.data, chunk.size)
+            p += chunk.size
+            size -= chunk.size
+            rb_chunk_free(chunk)
+
+        else:
+            # partial copy
+            memcpy(p, chunk.data, size)
+            chunk.data += size
+            chunk.size -= size
+            size = 0
+            rb_appendleft(rb, chunk)
+
+    return mem
+
+cdef void audio_callback(int chan, void *stream, int l, void *userdata) nogil:
+    cdef RingBuffer *rb = <RingBuffer *>userdata
+    cdef char *cbuf = rb_read(rb, l)
+    if cbuf == NULL:
+        return
+    memcpy(stream, <void *>cbuf, l)
+    free(cbuf)
+
 cdef class AudioSample:
 
-    cdef object audio_callback
     cdef int channel
     cdef Mix_Chunk *raw_chunk
     cdef AudioStream stream
     cdef public unsigned int index
+    cdef RingBuffer* ring
 
-    def __cinit__(self, *args):
+    def __cinit__(self):
         self.channel = -1
         self.raw_chunk = NULL
         self.stream = None
         self.index = 0
-
-    def __init__(self, audio_callback):
-        self.audio_callback = audio_callback
+        self.ring = rb_new(8192)
 
     cdef void dealloc(self):
         if self.raw_chunk != NULL:
             Mix_FreeChunk(self.raw_chunk)
             self.raw_chunk = NULL
+
+    def write(self, chunk):
+        rb_write(self.ring, len(chunk), <char *><bytes>chunk)
 
     cdef void alloc(self):
         cdef AudioStream stream = self.stream
