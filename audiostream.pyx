@@ -11,6 +11,7 @@ DEF AUDIO_S16SYS = 0x8010
 import cython
 from libc.stdlib cimport malloc, free, calloc
 from libc.string cimport memset, memcpy
+from libc.math cimport sin
 
 ctypedef signed long long int64_t
 ctypedef unsigned long long uint64_t
@@ -102,6 +103,28 @@ cdef extern from "SDL_mixer.h" nogil:
 
 class AudioException(Exception):
     pass
+
+def sine_wave(float frequency=440.0, int framerate=22050, float amplitude=0.5):
+    cdef int i, period
+    cdef float pi2, sincomp
+    cdef list lookup_table
+    cdef float pi = 3.141592653589793
+    cdef float f = 65535 / pi
+    period = int(framerate / frequency)
+    amplitude = max(0.0, min(1.0, amplitude))
+    lookup_table = []
+    pi2 = 2.0 * pi
+    for i in xrange(period):
+        sincomp = sin(pi2*float(frequency)*(float(i%period)/float(framerate)))
+        lookup_table.append(<short>(amplitude * sincomp * f))
+
+    try:
+        i = 0
+        while True:
+            yield lookup_table[i % period]
+            i += 1
+    except StopIteration:
+        return
 
 
 ctypedef struct RingBufferChunk:
@@ -252,7 +275,7 @@ cdef class AudioSample:
         self.raw_chunk = NULL
         self.stream = None
         self.index = 0
-        self.ring = rb_new(8192)
+        self.ring = rb_new(8192 * 2)
 
     cdef void dealloc(self):
         if self.raw_chunk != NULL:
