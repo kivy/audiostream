@@ -15,7 +15,7 @@ libraries = ['SDL', 'SDL_mixer']
 library_dirs = []
 include_dirs = ['/usr/include/SDL']
 extra_objects = []
-extra_compile_args=['-ggdb', '-O0']
+extra_compile_args =['-ggdb', '-O2']
 ext_files = ['audiostream.pyx']
 
 if not have_cython:

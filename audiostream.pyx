@@ -120,11 +120,13 @@ ctypedef struct RingBuffer:
     RingBufferChunk *last
 
 cdef RingBuffer *rb_new(int maxlen) nogil:
-    cdef RingBuffer *rb = <RingBuffer *>calloc(1, sizeof(RingBuffer))
+    cdef RingBuffer *rb = <RingBuffer *>malloc(sizeof(RingBuffer))
     rb.cond = SDL_CreateCond()
     rb.condmtx = SDL_CreateMutex()
     rb.qmtx = SDL_CreateMutex()
     rb.maxlen = maxlen
+    rb.size = 0
+    rb.first = rb.last = NULL
     return rb
 
 cdef RingBufferChunk *rb_chunk_new(int size, char *mem) nogil:
@@ -137,6 +139,7 @@ cdef RingBufferChunk *rb_chunk_new(int size, char *mem) nogil:
 
 cdef void rb_chunk_free(RingBufferChunk *chunk) nogil:
     free(chunk.mem)
+    chunk.mem = NULL
 
 cdef void rb_free(RingBuffer *rb) nogil:
     cdef RingBufferChunk *chunk = rb.first
@@ -222,6 +225,10 @@ cdef char *rb_read(RingBuffer *rb, int size) nogil:
             size = 0
             rb_appendleft(rb, chunk)
 
+    SDL_LockMutex(rb.condmtx)
+    SDL_CondSignal(rb.cond)
+    SDL_UnlockMutex(rb.condmtx)
+
     return mem
 
 cdef void audio_callback(int chan, void *stream, int l, void *userdata) nogil:
@@ -252,8 +259,11 @@ cdef class AudioSample:
             Mix_FreeChunk(self.raw_chunk)
             self.raw_chunk = NULL
 
-    def write(self, chunk):
-        rb_write(self.ring, len(chunk), <char *><bytes>chunk)
+    def write(self, bytes chunk):
+        cdef int lchunk = len(chunk)
+        cdef char *cchunk = <char *>chunk
+        with nogil:
+            rb_write(self.ring, lchunk, cchunk)
 
     cdef void alloc(self):
         cdef AudioStream stream = self.stream
@@ -273,7 +283,7 @@ cdef class AudioSample:
     cdef void registereffect(self) with gil:
         with nogil:
             SDL_LockAudio()
-            Mix_RegisterEffect(self.channel, audio_callback, NULL, <void *>self)
+            Mix_RegisterEffect(self.channel, audio_callback, NULL, <void *>self.ring)
             SDL_UnlockAudio()
 
     def play(self):
