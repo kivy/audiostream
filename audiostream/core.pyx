@@ -307,9 +307,9 @@ cdef class AudioStream:
 
     cdef list samples
     cdef int audio_init
-    cdef int rate
-    cdef int channels
-    cdef int buffersize
+    cdef readonly int rate
+    cdef readonly int channels
+    cdef readonly int buffersize
     cdef int mix_channels_usage[MIX_CHANNELS_MAX]
 
     def __cinit__(self, *args, **kw):

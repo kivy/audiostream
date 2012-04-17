@@ -4,11 +4,12 @@ from threading import Thread
 from audiostream.core import AudioSample
 
 class ThreadSource(Thread):
-    def __init__(self, stream, channels, bufsize):
+    def __init__(self, stream):
         Thread.__init__(self)
         self.daemon = True
-        self.bufsize = bufsize
-        self.channels = channels
+        self.buffersize = stream.buffersize
+        self.channels = stream.channels
+        self.rate = stream.rate
         self.sample = AudioSample()
         stream.add_sample(self.sample)
 

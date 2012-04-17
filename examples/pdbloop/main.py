@@ -17,7 +17,6 @@ from audiostream.sources.puredata import PatchSource
 
 CHANNELS = 2
 BUFSIZE = 4096 / 2
-BLOCKSIZE = 128
 SAMPLERATE = 44100
 
 class AudioApp(App):
@@ -34,7 +33,7 @@ class AudioApp(App):
         self.widget.add_widget(label)
         self.widget.add_widget(logo_kivy)
         self.stream = AudioStream(channels=CHANNELS, buffersize=BUFSIZE, rate=SAMPLERATE)
-        self.source = PatchSource(self.stream, SAMPLERATE, BUFSIZE, BLOCKSIZE)
+        self.source = PatchSource(self.stream, 'bloopy.pd')
         self.source.start()
 
         return self.widget

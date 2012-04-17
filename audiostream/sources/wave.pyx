@@ -6,11 +6,11 @@ from audiostream.sources.thread import ThreadSource
 
 class SineSource(ThreadSource):
 
-    def __init__(self, frequency, *args, **kwargs):
-        ThreadSource.__init__(self, *args, **kwargs)
+    def __init__(self, stream, frequency, *args, **kwargs):
+        ThreadSource.__init__(self, stream, *args, **kwargs)
+        self._freq = float(frequency)
         self.chunksize = kwargs.get('chunksize', 64)
         self.next_gen_left = self.next_gen_right = None
-        self._freq = float(frequency)
 
     def __set_freq__(self, float freq):
         self._freq = freq
@@ -46,7 +46,7 @@ class SineSource(ThreadSource):
             i += 2
         return buf.tostring()
 
-    def sine(self, float frequency=440.0, int framerate=22050, float amplitude=0.5):
+    def sine(self, float frequency=440.0, float amplitude=0.5):
         cdef int i = 0
         cdef float sincomp
         cdef list lookup_table
@@ -55,12 +55,12 @@ class SineSource(ThreadSource):
         cdef float pi2 = 2.0 * pi
         cdef float af = f * amplitude
         cdef float pi2freq = pi2 * frequency
-        cdef int period = int(framerate / frequency)
+        cdef int period = int(self.rate / frequency)
         amplitude = max(0.0, min(1.0, amplitude))
         lookup_table = []
         try:
             while i < period:
-                sincomp = sin(pi2freq *(float(i%period)/float(framerate)))
+                sincomp = sin(pi2freq *(float(i%period)/float(self.rate)))
                 yield <short>(af * sincomp)
                 i += 1
                 if i >= period:
