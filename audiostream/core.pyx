@@ -104,55 +104,6 @@ cdef extern from "SDL_mixer.h" nogil:
 class AudioException(Exception):
     pass
 
-from pylibpd import PdManager, libpd_open_patch
-import array
-
-def pd_wave(patch, samplerate, buffersize, blocksize):
-    m = PdManager(1, 2, samplerate, 1)
-    patch = libpd_open_patch(patch, '.')
-    inbuf = array.array('h', '\x00' * blocksize)
-    try:
-        while 1:
-            buf = array.array('h', '\x00' * buffersize)
-            for x in range(buffersize / 2):
-                if x % blocksize == 0:
-                    outbuf = m.process(inbuf)
-                buf[x] = outbuf[(x % blocksize)]
-            yield buf.tostring()
-    except StopIteration:
-        return
-                
-def sine_wave(float frequency=440.0, int framerate=22050, float amplitude=0.5):
-    cdef int i = 0
-    cdef float sincomp
-    cdef list lookup_table
-    cdef float pi = 3.141592653589793
-    cdef float f = 65535 / pi
-    cdef float pi2 = 2.0 * pi
-    cdef float af = f * amplitude
-    cdef float pi2freq = pi2 * frequency
-    cdef int period = int(framerate / frequency)
-    amplitude = max(0.0, min(1.0, amplitude))
-    lookup_table = []
-    try:
-        while i < period:
-            sincomp = sin(pi2freq *(float(i%period)/float(framerate)))
-            yield <short>(af * sincomp)
-            i += 1
-            if i >= period:
-                i = 0
-    except StopIteration:
-        return
-    # try:
-    #     i = 0
-    #     while True:
-    #         sincomp = sin(pifrequency*(i%period/framerate))
-    #         yield lookup_table[i % period]
-    #         i += 1
-    # except StopIteration:
-    #     return
-
-
 ctypedef struct RingBufferChunk:
     char *data
     char *mem
