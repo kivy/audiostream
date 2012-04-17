@@ -62,7 +62,7 @@ extensions = [makeExtension(name) for name in extNames]
 setup(
     name='audiostream',
     version='1.0',
-    author='Mathieu Virbel',
+    author='Mathieu Virbel, Dustin Lacewell',
     author_email='mat@kivy.org',
     packages=['audiostream', 'audiostream.sources'],
     url='http://txzone.net/',
