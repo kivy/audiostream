@@ -42,7 +42,8 @@ def scandir(dir, files=[]):
 
 # generate an Extension object from its dotted name
 def makeExtension(extName):
-    extPath = extName.replace(".", os.path.sep)+".c"
+    extPath = extName.replace('.', os.path.sep) + (
+            '.c' if not have_cython else '.pyx')
     return Extension(
         extName,
         [extPath],
