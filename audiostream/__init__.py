@@ -12,3 +12,6 @@ The goal of this project is act as low level as possible on the audio stream:
 '''
 
 __version__ = (0, 1)
+__all__ = ['AudioStream', 'AudioSample', 'AudioException']
+
+from audiostream.core import AudioStream, AudioSample, AudioException

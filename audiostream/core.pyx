@@ -1,235 +1,29 @@
+#cython: embedsignature=True
 '''
 Audiostream python extension
 ============================
 
 '''
 
+__all__ = ('AudioStream', 'AudioSample', 'AudioException', )
+
 DEF SDL_INIT_AUDIO = 0x10
 DEF MIX_CHANNELS_MAX = 32
 DEF AUDIO_S16SYS = 0x8010
 
-import cython, array
 from libc.stdlib cimport malloc, free, calloc
 from libc.string cimport memset, memcpy
 from libc.math cimport sin
 
-ctypedef signed long long int64_t
-ctypedef unsigned long long uint64_t
-ctypedef unsigned char uint8_t
-ctypedef unsigned int uint32_t
-ctypedef short int16_t
-ctypedef unsigned short uint16_t
-
-cdef extern from "Python.h":
-    void PyEval_InitThreads()
-
-cdef extern from "SDL.h" nogil:
-    struct SDL_AudioSpec:
-        int freq
-        uint16_t format
-        uint8_t channels
-        uint8_t silence
-        uint16_t samples
-        uint16_t padding
-        uint32_t size
-        void (*callback)(void *userdata, uint8_t *stream, int len)
-        void *userdata
-
-    struct SDL_mutex:
-        pass
-
-    struct SDL_Thread:
-        pass
-
-    SDL_mutex *SDL_CreateMutex()
-    void SDL_DestroyMutex(SDL_mutex *)
-    int SDL_LockMutex(SDL_mutex *)
-    int SDL_UnlockMutex(SDL_mutex *)
-
-    struct SDL_cond:
-        pass
-
-    SDL_cond *SDL_CreateCond()
-    void SDL_DestroyCond(SDL_cond *)
-    int SDL_CondSignal(SDL_cond *)
-    int SDL_CondWait(SDL_cond *, SDL_mutex *)
-
-    struct SDL_Thread:
-        pass
-
-    ctypedef int (*SDLCALL)(void *)
-    SDL_Thread *SDL_CreateThread(SDLCALL, void *data)
-    void SDL_WaitThread(SDL_Thread *thread, int *status)
-    uint32_t SDL_ThreadID()
-
-    char *SDL_GetError()
-
-    struct SDL_UserEvent:
-        uint8_t type
-        int code
-        void *data1
-        void *data2
-
-    union SDL_Event:
-        uint8_t type
-
-    int SDL_PushEvent(SDL_Event *event)
-    void SDL_Delay(int)
-    int SDL_Init(int)
-    void SDL_LockAudio()
-    void SDL_UnlockAudio()
-
-cdef extern from "SDL_mixer.h" nogil:
-    struct Mix_Chunk:
-        pass
-    int Mix_Init(int)
-    int Mix_OpenAudio(int frequency, uint16_t format, int channels, int chunksize)
-    void Mix_Pause(int channel)
-    void Mix_Resume(int channel)
-    void Mix_CloseAudio()
-    int Mix_PlayChannel(int channel, Mix_Chunk *chunk, int loops)
-    int Mix_HaltChannel(int channel)
-    char *Mix_GetError()
-    ctypedef void (*Mix_EffectFunc_t)(int, void *, int, void *)
-    ctypedef void (*Mix_EffectDone_t)(int, void *)
-    int Mix_RegisterEffect(int chan, Mix_EffectFunc_t f, Mix_EffectDone_t d, void * arg)
-    int Mix_UnregisterAllEffects(int chan)
-    int Mix_AllocateChannels(int numchans)
-    Mix_Chunk *Mix_QuickLoad_RAW(uint8_t *mem, uint32_t l)
-    void Mix_FreeChunk(Mix_Chunk *chunk)
-    int Mix_QuerySpec(int *frequency,uint16_t *format,int *channels)
-    int Mix_Volume(int chan, int volume)
+include "common.pxi"
+include "ringbuffer.pxi"
 
 
 class AudioException(Exception):
+    '''Exception returned by the audiostream module
+    '''
     pass
 
-ctypedef struct RingBufferChunk:
-    char *data
-    char *mem
-    int size
-    RingBufferChunk *next
-
-ctypedef struct RingBuffer:
-    int maxlen
-    SDL_cond *cond
-    SDL_mutex *condmtx
-    SDL_mutex *qmtx
-    int size
-    RingBufferChunk *first
-    RingBufferChunk *last
-
-cdef RingBuffer *rb_new(int maxlen) nogil:
-    cdef RingBuffer *rb = <RingBuffer *>malloc(sizeof(RingBuffer))
-    rb.cond = SDL_CreateCond()
-    rb.condmtx = SDL_CreateMutex()
-    rb.qmtx = SDL_CreateMutex()
-    rb.maxlen = maxlen
-    rb.size = 0
-    rb.first = rb.last = NULL
-    return rb
-
-cdef RingBufferChunk *rb_chunk_new(int size, char *mem) nogil:
-    cdef RingBufferChunk *chunk = <RingBufferChunk *>malloc(sizeof(RingBufferChunk))
-    chunk.mem = chunk.data = <char *>malloc(size)
-    memcpy(chunk.mem, mem, size)
-    chunk.size = size
-    chunk.next = NULL
-    return chunk
-
-cdef void rb_chunk_free(RingBufferChunk *chunk) nogil:
-    free(chunk.mem)
-    chunk.mem = NULL
-
-cdef void rb_free(RingBuffer *rb) nogil:
-    cdef RingBufferChunk *chunk = rb.first
-    while chunk != NULL:
-        rb.first = chunk.next
-        rb_chunk_free(chunk)
-        chunk = rb.first
-    SDL_DestroyMutex(rb.condmtx)
-    SDL_DestroyMutex(rb.qmtx)
-    SDL_DestroyCond(rb.cond)
-
-cdef void rb_appendleft(RingBuffer *rb, RingBufferChunk *chunk) nogil:
-    SDL_LockMutex(rb.qmtx)
-    if rb.first == NULL:
-        rb.first = rb.last = chunk
-    else:
-        chunk.next = rb.first
-        rb.first = chunk
-    rb.size += chunk.size
-    SDL_UnlockMutex(rb.qmtx)
-
-cdef void rb_append(RingBuffer *rb, RingBufferChunk *chunk) nogil:
-    SDL_LockMutex(rb.qmtx)
-    if rb.last == NULL:
-        rb.last = rb.first = chunk
-    else:
-        rb.last.next = chunk
-        rb.last = chunk
-    rb.size += chunk.size
-    SDL_UnlockMutex(rb.qmtx)
-
-cdef RingBufferChunk *rb_popleft(RingBuffer *rb) nogil:
-    cdef RingBufferChunk *chunk = NULL
-    SDL_LockMutex(rb.qmtx)
-    chunk = rb.first
-    if chunk == NULL:
-        return NULL
-    rb.first = chunk.next
-    if rb.first == NULL:
-        rb.last = NULL
-    rb.size -= chunk.size
-    SDL_UnlockMutex(rb.qmtx)
-    chunk.next = NULL
-    return chunk
-
-cdef void rb_write(RingBuffer *rb, int size, char *cbuf) nogil:
-    cdef RingBufferChunk *chunk = rb_chunk_new(size, cbuf)
-    SDL_LockMutex(rb.condmtx)
-    while rb.size > rb.maxlen:
-        SDL_CondWait(rb.cond, rb.condmtx)
-    SDL_UnlockMutex(rb.condmtx)
-    rb_append(rb, chunk)
-
-cdef char *rb_read(RingBuffer *rb, int size) nogil:
-    cdef RingBufferChunk *chunk = NULL
-    cdef char *mem = NULL, *p = NULL
-
-    SDL_LockMutex(rb.qmtx)
-    if rb.size < size:
-        SDL_UnlockMutex(rb.qmtx)
-        return NULL
-    SDL_UnlockMutex(rb.qmtx)
-
-    p = mem = <char *>malloc(size)
-    while size > 0:
-        chunk = rb_popleft(rb)
-        if chunk == NULL:
-            free(mem)
-            return NULL
-
-        if chunk.size <= size:
-            # full copy ?
-            memcpy(p, chunk.data, chunk.size)
-            p += chunk.size
-            size -= chunk.size
-            rb_chunk_free(chunk)
-
-        else:
-            # partial copy
-            memcpy(p, chunk.data, size)
-            chunk.data += size
-            chunk.size -= size
-            size = 0
-            rb_appendleft(rb, chunk)
-
-    SDL_LockMutex(rb.condmtx)
-    SDL_CondSignal(rb.cond)
-    SDL_UnlockMutex(rb.condmtx)
-
-    return mem
 
 cdef void audio_callback(int chan, void *stream, int l, void *userdata) nogil:
     cdef RingBuffer *rb = <RingBuffer *>userdata
@@ -239,7 +33,28 @@ cdef void audio_callback(int chan, void *stream, int l, void *userdata) nogil:
     memcpy(stream, <void *>cbuf, l)
     free(cbuf)
 
+
 cdef class AudioSample:
+    ''':class:`AudioSample` is a class for writing data on the speaker. The data
+    goes first on a RingBuffer, and the buffer is consumed by the speaker,
+    according to the :class:`AudioStream` initialization.
+
+    Example::
+
+        stream = AudioStream(channels=1, buffersize=1024, rate=22050)
+        sample = AudioSample()
+        stream.add_sample(sample)
+
+        sample.play()
+        while True:
+            # audio stuff, this is not accurate.
+            sample.write("\\x00\\x00\\x00\\x00\\xff\\xff\\xff\\xff")
+
+    You must fill the sample as much as possible, in order to prevent buffer
+    underflow. If you don't give enough data, the speaker will read '\\x00' data.
+
+    You should use :class:`audiostream.sources.ThreadSource` instead.
+    '''
 
     cdef int channel
     cdef Mix_Chunk *raw_chunk
@@ -260,6 +75,9 @@ cdef class AudioSample:
             self.raw_chunk = NULL
 
     def write(self, bytes chunk):
+        '''Write a data chunk into the ring buffer, it will be consumed later by
+        the speaker.
+        '''
         cdef int lchunk = len(chunk)
         cdef char *cchunk = <char *>chunk
         with nogil:
@@ -287,6 +105,8 @@ cdef class AudioSample:
             SDL_UnlockAudio()
 
     def play(self):
+        '''Play the sample using the internal ring buffer.
+        '''
         cdef int ret
         if self.channel == -1:
             self.alloc()
@@ -299,11 +119,21 @@ cdef class AudioSample:
             print 'error', <bytes>Mix_GetError()
 
     def stop(self):
+        '''Stop the playback.
+        '''
         with nogil:
             Mix_HaltChannel(self.channel)
 
 
 cdef class AudioStream:
+    ''':class:`AudioStream` class is the base for initializing the internal
+    audio.
+    
+    .. warning::
+    
+        You can instanciate only one AudioStream in a process. It must be
+        instanciated before any others components of the library.
+    '''
 
     cdef list samples
     cdef int audio_init
