@@ -7,4 +7,4 @@ build:
 
 html: build
 	-rm -rf docs/build
-	env PYTHONPATH=$(shell pwd) make -C docs html
+	make -C docs html
