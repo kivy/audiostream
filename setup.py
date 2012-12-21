@@ -16,6 +16,7 @@ if kivy_ios_root is not None:
     platform = 'ios'
 
 # ensure Cython is installed for desktop app
+cmdclass = {}
 have_cython = False
 if platform in ('android', 'ios'):
     print 'Cython import ignored'
@@ -23,7 +24,7 @@ else:
     try:
         from Cython.Distutils import build_ext
         have_cython = True
-        cmdclass = {'build_ext': build_ext}
+        cmdclass['build_ext'] = build_ext
     except ImportError:
         print '**** Cython is required to compile audiostream ****'
         raise
