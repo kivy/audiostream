@@ -4,3 +4,4 @@
 *.so
 *.swp
 build
+audiostream/config.pxi

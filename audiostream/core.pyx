@@ -15,6 +15,7 @@ from libc.stdlib cimport malloc, free, calloc
 from libc.string cimport memset, memcpy
 from libc.math cimport sin
 
+include "config.pxi"
 include "common.pxi"
 include "ringbuffer.pxi"
 
@@ -125,6 +126,23 @@ cdef class AudioSample:
             Mix_HaltChannel(self.channel)
 
 
+def AudioStream_get_microphone(callback, **kwargs):
+    IF PLATFORM == 'android':
+        from audiostream.platform.plat_android import AndroidMicrophone
+        return AndroidMicrophone(callback=callback, **kwargs)
+    ELSE:
+        raise Exception('Unsupported platform')
+
+
+def AudioStream_get_microphone_sources():
+    IF PLATFORM == 'android':
+        return ('camcorder', 'default', 'mic', 'voice_call',
+                'voice_communication', 'voice_downlink', 'voice_recognition',
+                'voice_uplink')
+    ELSE:
+        raise Exception('Unsupported platform')
+
+
 cdef class AudioStream:
     ''':class:`AudioStream` class is the base for initializing the internal
     audio.
@@ -200,3 +218,5 @@ cdef class AudioStream:
                return i
         return -1
 
+    get_microphone = staticmethod(AudioStream_get_microphone)
+    get_microphone_sources = staticmethod(AudioStream_get_microphone_sources)

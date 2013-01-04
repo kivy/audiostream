@@ -1,6 +1,6 @@
 import sys
 import os
-from os.path import join
+from os.path import join, dirname
 from os import environ
 from distutils.core import setup
 from distutils.extension import Extension
@@ -16,8 +16,8 @@ if kivy_ios_root is not None:
     platform = 'ios'
 
 # ensure Cython is installed for desktop app
-cmdclass = {}
 have_cython = False
+cmdclass = {}
 if platform in ('android', 'ios'):
     print 'Cython import ignored'
 else:
@@ -44,18 +44,6 @@ else:
     include_dirs.append('.')
     include_dirs.append('/usr/include/SDL')
 
-# scan the 'dvedit' directory for extension files, converting
-# them to extension names in dotted notation
-def scandir(directory, files=[]):
-    for fn in os.listdir(directory):
-        path = join(directory, fn)
-        if os.path.isfile(path) and path.endswith(".pyx"):
-            path = path.replace('.pyx', '.c')
-            files.append(path.replace(os.path.sep, ".")[:-2])
-        elif os.path.isdir(path):
-            scandir(path, files)
-    return files
-
 # generate an Extension object from its dotted name
 def makeExtension(extName):
     extPath = extName.replace('.', os.path.sep) + (
@@ -70,21 +58,29 @@ def makeExtension(extName):
         extra_compile_args=extra_compile_args,
         )
 
-# get the list of extensions
-extNames = scandir("audiostream")
+# indicate which extensions we want to compile
+extensions = [
+    'audiostream.sources.thread',
+    'audiostream.sources.wave',
+    'audiostream.sources.puredata',
+    'audiostream.core']
 
-# and build up the set of Extension objects
-extensions = [makeExtension(name) for name in extNames]
+if platform == 'android':
+    extensions.append('audiostream.platform.plat_android')
+
+config_pxi = join(dirname(__file__), 'audiostream', 'config.pxi')
+with open(config_pxi, 'w') as fd:
+    fd.write('DEF PLATFORM = "{}"'.format(platform))
 
 setup(
     name='audiostream',
     version='1.0',
     author='Mathieu Virbel, Dustin Lacewell',
     author_email='mat@kivy.org',
-    packages=['audiostream', 'audiostream.sources'],
+    packages=['audiostream', 'audiostream.sources', 'audiostream.platform'],
     url='http://txzone.net/',
     license='LGPL',
     description='An audio library designed to let the user stream to speakers',
-    ext_modules=extensions,
+    ext_modules=[makeExtension(x) for x in extensions],
     cmdclass=cmdclass,
 )
