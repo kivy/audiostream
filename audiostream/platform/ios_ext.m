@@ -54,7 +54,6 @@ static OSStatus recordingCallback(void *inRefCon,
 
 	// Now, we have the samples we just read sitting in buffers in bufferList
 	// Process the new data
-	printf("recordingCallback() audio_callback=%p\n", audio_callback);
 	if ( audio_callback ) {
 		audio_callback(
 			bufferList.mBuffers[0].mData,
@@ -131,6 +130,7 @@ int as_ios_mic_init(int rate, int channels, int encoding) {
 	audioFormat.mBitsPerChannel             = encoding;
 	audioFormat.mBytesPerFrame              = 2;
 	audioFormat.mBytesPerPacket             = 2;
+#if 0
 	printf("bytesPerSample = %d\n", bytesPerSample);
 	printf("audioFormat.mSampleRate = %f\n", audioFormat.mSampleRate);
 	printf("audioFormat.mFramesPerPacket = %d\n", audioFormat.mFramesPerPacket);
@@ -138,6 +138,7 @@ int as_ios_mic_init(int rate, int channels, int encoding) {
 	printf("audioFormat.mBitsPerChannel = %d\n", audioFormat.mBitsPerChannel);
 	printf("audioFormat.mBytesPerFrame = %d\n", audioFormat.mBytesPerFrame);
 	printf("audioFormat.mBytesPerPacket = %d\n", audioFormat.mBytesPerPacket);
+#endif
 
     // Get actual buffer size
     Float32 audioBufferSize;

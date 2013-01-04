@@ -29,8 +29,12 @@ class AudioException(Exception):
 cdef void audio_callback(int chan, void *stream, int l, void *userdata) nogil:
     cdef RingBuffer *rb = <RingBuffer *>userdata
     cdef char *cbuf = rb_read(rb, l)
+    with gil:
+        print 'audio_callback() 1', chan, l
     if cbuf == NULL:
         return
+    with gil:
+        print 'audio_callback() 2', chan, l
     memcpy(stream, <void *>cbuf, l)
     free(cbuf)
 

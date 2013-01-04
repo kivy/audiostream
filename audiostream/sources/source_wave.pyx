@@ -11,6 +11,8 @@ class SineSource(ThreadSource):
         self._freq = float(frequency)
         self.chunksize = kwargs.get('chunksize', 64)
         self.next_gen_left = self.next_gen_right = None
+        self.gen_left = self.sine(frequency=frequency)
+        self.gen_right = self.sine(frequency=frequency)
 
     def __set_freq__(self, float freq):
         self._freq = freq
