@@ -130,6 +130,9 @@ def AudioStream_get_microphone(callback, **kwargs):
     IF PLATFORM == 'android':
         from audiostream.platform.plat_android import AndroidMicrophone
         return AndroidMicrophone(callback=callback, **kwargs)
+    ELIF PLATFORM == 'ios':
+        from audiostream.platform.plat_ios import IosMicrophone
+        return IosMicrophone(callback=callback, **kwargs)
     ELSE:
         raise Exception('Unsupported platform')
 
@@ -139,6 +142,8 @@ def AudioStream_get_microphone_sources():
         return ('camcorder', 'default', 'mic', 'voice_call',
                 'voice_communication', 'voice_downlink', 'voice_recognition',
                 'voice_uplink')
+    ELIF PLATFORM == 'ios':
+        return ('default', )
     ELSE:
         raise Exception('Unsupported platform')
 

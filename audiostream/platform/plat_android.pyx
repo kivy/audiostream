@@ -1,5 +1,6 @@
 __all__ = ('AndroidMicrophone', )
 
+from audiostream.microphone import Microphone
 
 include "../config.pxi"
 
@@ -10,28 +11,6 @@ cdef extern from "android_ext.h":
 
 py_audio_callback = None
 AudioIn = None
-
-class Microphone(object):
-    def __init__(self, callback, source='default', rate=44100, channels=1,
-            bufsize=-1, encoding=16):
-        super(Microphone, self).__init__()
-        if encoding not in (8, 16):
-            raise Exception('Invalid encoding, must be one of 8, 16')
-        if channels not in (1, 2):
-            raise Exception('Invalid channels, must be one of 1, 2')
-        self.callback = callback
-        self.source = source
-        self.rate = rate
-        self.channels = channels
-        self.bufsize = bufsize
-        self.encoding = encoding
-
-    def start(self):
-        pass
-
-    def stop(self):
-        pass
-
 
 class AndroidMicrophone(Microphone):
     # from http://developer.android.com/reference/android/media/AudioFormat.html#CHANNEL_IN_STEREO

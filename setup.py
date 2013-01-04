@@ -35,42 +35,57 @@ library_dirs = []
 include_dirs = ['/usr/include/SDL']
 extra_objects = []
 extra_compile_args =['-ggdb', '-O2']
-ext_files = ['audiostream/audiostream.pyx']
+extra_link_args = []
+extensions = []
 
 if not have_cython:
-    ext_files = [x.replace('.pyx', '.c') for x in ext_files]
     libraries = ['sdl', 'sdl_mixer']
 else:
     include_dirs.append('.')
     include_dirs.append('/usr/include/SDL')
 
 # generate an Extension object from its dotted name
-def makeExtension(extName):
+def makeExtension(extName, files=None):
     extPath = extName.replace('.', os.path.sep) + (
             '.c' if not have_cython else '.pyx')
+    if files is None:
+        files = []
     return Extension(
         extName,
-        [extPath],
+        [extPath] + files,
         include_dirs=include_dirs,
         library_dirs=library_dirs,
         libraries=libraries,
         extra_objects=extra_objects,
         extra_compile_args=extra_compile_args,
+        extra_link_args=extra_link_args
         )
 
-# indicate which extensions we want to compile
-extensions = [
-    'audiostream.sources.thread',
-    'audiostream.sources.wave',
-    'audiostream.sources.puredata',
-    'audiostream.core']
-
 if platform == 'android':
-    extensions.append('audiostream.platform.plat_android')
+    extensions.append(makeExtension('audiostream.platform.plat_android'))
+
+elif platform == 'ios':
+    include_dirs = [
+            join(kivy_ios_root, 'build', 'include'),
+            join(kivy_ios_root, 'build', 'include', 'SDL')]
+    extra_link_args = [
+        '-L', join(kivy_ios_root, 'build', 'lib'),
+        '-undefined', 'dynamic_lookup']
+    extensions.append(makeExtension('audiostream.platform.plat_ios',
+        [join('audiostream', 'platform', 'ios_ext.m')]))
+
 
 config_pxi = join(dirname(__file__), 'audiostream', 'config.pxi')
 with open(config_pxi, 'w') as fd:
     fd.write('DEF PLATFORM = "{}"'.format(platform))
+
+
+# indicate which extensions we want to compile
+extensions += [makeExtension(x) for x in (
+    'audiostream.sources.source_thread',
+    'audiostream.sources.source_wave',
+    'audiostream.sources.source_puredata',
+    'audiostream.core')]
 
 setup(
     name='audiostream',
@@ -81,6 +96,6 @@ setup(
     url='http://txzone.net/',
     license='LGPL',
     description='An audio library designed to let the user stream to speakers',
-    ext_modules=[makeExtension(x) for x in extensions],
+    ext_modules=extensions,
     cmdclass=cmdclass,
 )
