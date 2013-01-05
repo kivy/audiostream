@@ -1,10 +1,7 @@
-import threading
 from kivy.config import Config
 Config.set('graphics', 'maxfps', '30')
-from time import time
-from array import array
 
-from audiostream import AudioStream, AudioSample
+from audiostream import AudioStream
 from audiostream.sources.wave import SineSource
 
 CHANNELS = 2
