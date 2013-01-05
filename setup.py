@@ -82,9 +82,9 @@ with open(config_pxi, 'w') as fd:
 
 # indicate which extensions we want to compile
 extensions += [makeExtension(x) for x in (
-    'audiostream.sources.source_thread',
-    'audiostream.sources.source_wave',
-    'audiostream.sources.source_puredata',
+    'audiostream.sources.thread',
+    'audiostream.sources.wave',
+    'audiostream.sources.puredata',
     'audiostream.core')]
 
 setup(

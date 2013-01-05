@@ -1,7 +1,7 @@
+__all__ = ('SineSource', )
+
 from libc.math cimport sin
-
 from array import array
-
 from audiostream.sources.thread import ThreadSource
 
 class SineSource(ThreadSource):

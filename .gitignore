@@ -5,3 +5,5 @@
 *.swp
 build
 audiostream/config.pxi
+
+*.egg-info
