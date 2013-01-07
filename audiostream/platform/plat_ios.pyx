@@ -1,6 +1,6 @@
-__all__ = ('IosMicrophone', )
+__all__ = ('IosAudioInput', )
 
-from audiostream.microphone import Microphone
+from audiostream import AudioInput
 
 include "../config.pxi"
 
@@ -14,7 +14,7 @@ cdef extern from "ios_ext.h":
 
 py_audio_callback = None
 
-class IosMicrophone(Microphone):
+class IosAudioInput(AudioInput):
     def start(self):
         global py_audio_callback
         py_audio_callback = self.callback
@@ -26,11 +26,11 @@ class IosMicrophone(Microphone):
         ret = as_ios_mic_stop()
         as_ios_mic_deinit()
 
-cdef void cy_audio_callback(char *buf, int bufsize) nogil:
+cdef void cy_audio_callback(char *buf, int buffersize) nogil:
     with gil:
         if py_audio_callback is None:
             return
-        py_audio_callback(buf[:bufsize])
+        py_audio_callback(buf[:buffersize])
 
 cdef void init():
     audiostream_cy_register(cy_audio_callback)

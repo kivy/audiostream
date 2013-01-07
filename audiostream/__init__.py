@@ -11,8 +11,10 @@ The goal of this project is act as low level as possible on the audio stream:
 - You get bytes from the microphone
 '''
 
-__version__ = (0, 1)
-__all__ = ('AudioStream', 'AudioSample', 'AudioException')
+__version__ = (0, 2)
 
-from audiostream.core import AudioStream, AudioSample, AudioException
+__all__ = ('get_output', 'get_input', 'get_input_sources', 'AudioOutput',
+    'AudioInput', 'AudioSample', 'AudioException')
+
+from audiostream.core import *
 

@@ -1,7 +1,7 @@
 from kivy.config import Config
 Config.set('graphics', 'maxfps', '30')
 
-from audiostream import AudioStream
+from audiostream import get_output
 from audiostream.sources.wave import SineSource
 
 CHANNELS = 2
@@ -13,11 +13,10 @@ from kivy.uix.slider import Slider
 
 class AudioApp(App):
     def build(self):
-        self.stream = AudioStream(channels=CHANNELS, buffersize=BUFSIZE, rate=22050)
+        self.stream = get_output(channels=CHANNELS, buffersize=BUFSIZE, rate=22050)
         self.slider = Slider(min=110, max=880, value=440)
         self.slider.bind(value=self.update_freq)
 
-        print "STARTING THREAD!!!"
         self.source = SineSource(self.stream, 440)
         self.source.start()
 

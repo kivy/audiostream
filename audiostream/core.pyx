@@ -5,11 +5,19 @@ Audiostream python extension
 
 '''
 
-__all__ = ('AudioStream', 'AudioSample', 'AudioException', )
+__all__ = (
+    'get_output',
+    'get_input',
+    'get_input_sources',
+    'AudioOutput',
+    'AudioInput',
+    'AudioSample',
+    'AudioException')
 
 DEF SDL_INIT_AUDIO = 0x10
 DEF MIX_CHANNELS_MAX = 32
 DEF AUDIO_S16SYS = 0x8010
+DEF AUDIO_S8 = 0x8008
 
 from libc.stdlib cimport malloc, free, calloc
 from libc.string cimport memset, memcpy
@@ -42,7 +50,8 @@ cdef class AudioSample:
 
     Example::
 
-        stream = AudioStream(channels=1, buffersize=1024, rate=22050)
+        from audiostream import get_output, AudioSample
+        stream = get_output(channels=1, buffersize=1024, rate=22050)
         sample = AudioSample()
         stream.add_sample(sample)
 
@@ -59,7 +68,7 @@ cdef class AudioSample:
 
     cdef int channel
     cdef Mix_Chunk *raw_chunk
-    cdef AudioStream stream
+    cdef AudioOutput stream
     cdef public unsigned int index
     cdef RingBuffer* ring
 
@@ -85,7 +94,7 @@ cdef class AudioSample:
             rb_write(self.ring, lchunk, cchunk)
 
     cdef void alloc(self):
-        cdef AudioStream stream = self.stream
+        cdef AudioOutput stream = self.stream
 
         self.channel = stream.alloc_channel()
         if self.channel == -1:
@@ -125,36 +134,13 @@ cdef class AudioSample:
         with nogil:
             Mix_HaltChannel(self.channel)
 
-
-def AudioStream_get_microphone(callback, **kwargs):
-    IF PLATFORM == 'android':
-        from audiostream.platform.plat_android import AndroidMicrophone
-        return AndroidMicrophone(callback=callback, **kwargs)
-    ELIF PLATFORM == 'ios':
-        from audiostream.platform.plat_ios import IosMicrophone
-        return IosMicrophone(callback=callback, **kwargs)
-    ELSE:
-        raise Exception('Unsupported platform')
-
-
-def AudioStream_get_microphone_sources():
-    IF PLATFORM == 'android':
-        return ('camcorder', 'default', 'mic', 'voice_call',
-                'voice_communication', 'voice_downlink', 'voice_recognition',
-                'voice_uplink')
-    ELIF PLATFORM == 'ios':
-        return ('default', )
-    ELSE:
-        raise Exception('Unsupported platform')
-
-
-cdef class AudioStream:
-    ''':class:`AudioStream` class is the base for initializing the internal
+cdef class AudioOutput:
+    ''':class:`AudioOutput` class is the base for initializing the internal
     audio.
     
     .. warning::
     
-        You can instanciate only one AudioStream in a process. It must be
+        You can instanciate only one AudioOutput in a process. It must be
         instanciated before any others components of the library.
     '''
 
@@ -163,19 +149,25 @@ cdef class AudioStream:
     cdef readonly int rate
     cdef readonly int channels
     cdef readonly int buffersize
+    cdef readonly int encoding
     cdef int mix_channels_usage[MIX_CHANNELS_MAX]
 
     def __cinit__(self, *args, **kw):
         self.audio_init = 0
 
-    def __init__(self, rate=44100, channels=2, buffersize=1024):
+    def __init__(self, rate=44100, channels=2, buffersize=1024, encoding=16):
         self.samples = []
         self.rate = rate
         self.channels = channels
         self.buffersize = buffersize
+        self.encoding = encoding
+
+        assert(encoding in (8, 16))
+        assert(channels >= 1)
+        assert(buffersize >= 0)
 
         if self.init_audio() < 0:
-            raise AudioException('AudioStream: unable to initialize audio')
+            raise AudioException('AudioOutput: unable to initialize audio')
 
 
     def add_sample(self, AudioSample sample):
@@ -199,16 +191,17 @@ cdef class AudioStream:
             print 'SDL_Init: %s' % SDL_GetError()
             return -1
 
-        if Mix_OpenAudio(self.rate, AUDIO_S16SYS, self.channels, self.buffersize):
+        cdef unsigned int encoding = AUDIO_S8 if self.encoding == 8 else AUDIO_S16SYS
+        if Mix_OpenAudio(self.rate, encoding, self.channels, self.buffersize):
             print 'Mix_OpenAudio: %s' % SDL_GetError()
             return -1
 
         memset(self.mix_channels_usage, 0, sizeof(int) * MIX_CHANNELS_MAX)
 
         SDL_LockAudio()
-        print 'AudioStream ask for', self.rate, self.channels
+        print 'AudioOutput ask for', self.rate, self.channels
         Mix_QuerySpec(&self.rate, NULL, &self.channels)
-        print 'AudioStream got', self.rate, self.channels
+        print 'AudioOutput got', self.rate, self.channels
         Mix_AllocateChannels(MIX_CHANNELS_MAX)
         SDL_UnlockAudio()
 
@@ -223,5 +216,116 @@ cdef class AudioStream:
                return i
         return -1
 
-    get_microphone = staticmethod(AudioStream_get_microphone)
-    get_microphone_sources = staticmethod(AudioStream_get_microphone_sources)
+
+class AudioInput(object):
+    '''Abstract class for handling an audio input. Normally, the default audio
+    source is the microphone. It will be recorded with a rate of 44100hz, mono,
+    with 16bit PCM. Theses defaults are the most used and guaranted to work on
+    Android and iOS. Any others combination might fail.
+
+    .. warning::
+        Don't use this class directly, use :func:`AudioOutput.get_input`.
+
+    '''
+    def __init__(self, callback=None, source='default', rate=44100, channels=1,
+            buffersize=-1, encoding=16):
+        super(AudioInput, self).__init__()
+        if encoding not in (8, 16):
+            raise Exception('Invalid encoding, must be one of 8, 16')
+        if channels not in (1, 2):
+            raise Exception('Invalid channels, must be one of 1, 2')
+        self.callback = callback
+        self.source = source
+        self.rate = rate
+        self.channels = channels
+        self.buffersize = buffersize
+        self.encoding = encoding
+
+    def start(self):
+        '''Start the input to gather data from the source.
+        '''
+        pass
+
+    def stop(self):
+        '''Stop the input to gather data from the source.
+        '''
+        pass
+
+
+def get_input(**kwargs):
+    '''Return a :class:`AudioInput` instance for the current platform
+
+    :Parameters:
+        `callback`: python function
+            If set, the function will be called with the audioinput instance and
+            the buffer as arguments.
+        `source`: str
+            The source must be one available source from the
+            :func:`audiostream.get_input_sources`. This source can change
+            depending the platform.
+        `rate`: int
+            Rate of the audio, default to 44100
+        `channels`: int
+            Number of input channel, can be 1 or 2. Default to 1
+        `encoding`: int
+            Size of each buffer frame, can be 8 or 16. Default to 16.
+        `buffersize`: int
+            Size of the input buffer. If <= 0, if will be automatically sized
+
+    Example::
+
+        from audiostream import get_input
+
+        def mic_callback(buf):
+            print 'got', len(buf)
+
+        # get the default audio input (mic on most cases)
+        mic = get_input(mic_callback)
+        mic.start()
+        sleep(2)
+        mic.stop()
+
+    '''
+    IF PLATFORM == 'android':
+        from audiostream.platform.plat_android import AndroidAudioInput
+        return AndroidAudioInput(callback=callback, **kwargs)
+    ELIF PLATFORM == 'ios':
+        from audiostream.platform.plat_ios import IosAudioInput
+        return IosAudioInput(callback=callback, **kwargs)
+    ELSE:
+        raise Exception('Unsupported platform')
+
+
+def get_input_sources():
+    '''Return all the available sources for the current platform.
+    The current available sources are:
+    
+    * android: 'camcorder', 'default', 'mic', 'voice_call',
+      'voice_communication', 'voice_downlink', 'voice_recognition',
+      'voice_uplink'
+    * ios: 'default'
+
+    Other platforms are not yet supported.
+    '''
+    IF PLATFORM == 'android':
+        return ('camcorder', 'default', 'mic', 'voice_call',
+                'voice_communication', 'voice_downlink', 'voice_recognition',
+                'voice_uplink')
+    ELIF PLATFORM == 'ios':
+        return ('default', )
+    ELSE:
+        raise Exception('Unsupported platform')
+
+
+def get_output(**kwargs):
+    '''Return a :class:`AudioOutput` instance for the current platform.
+
+    :Parameters:
+        `rate`: int
+            Rate of the audio, default to 44100
+        `channels`: int
+            Number of channel, minimum 1. Default to 2.
+        `encoding`: int
+            Encoding of the audio, can be one of 8 or 16, default to 16.
+    '''
+    return AudioOutput(**kwargs)
