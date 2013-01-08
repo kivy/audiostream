@@ -21,3 +21,6 @@ class ThreadSource(Thread):
         while True:
             self.sample.write(self.get_bytes())
 
+    def stop(self):
+        self.sample.stop()
+

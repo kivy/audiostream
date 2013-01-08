@@ -17,12 +17,36 @@ class SineSource(ThreadSource):
     def __set_freq__(self, float freq):
         self._freq = freq
         self.next_gen_left = self.sine(frequency=freq)
-        self.next_gen_right = self.sine(frequency=freq / 2.0)
+        self.next_gen_right = self.sine(frequency=freq)
     def __get_freq__(self):
         return self._freq
     frequency = property(__get_freq__, __set_freq__)
 
     def get_bytes(self):
+        if self.channels == 1:
+            return self._get_bytes_mono()
+        elif self.channels == 2:
+            return self._get_bytes_stereo()
+        assert(0)
+
+    def _get_bytes_mono(self):
+        cdef int i = 0
+        buf = array('h', '\x00' * self.chunksize)
+        lvl = None
+        glnext = self.gen_left.next
+        next_gen_left = self.next_gen_left
+        while i < self.chunksize / 2:
+            vl = glnext()
+            if next_gen_left and lvl == 0 and vl > 0:
+                self.gen_left = self.next_gen_left
+                glnext = self.gen_left.next
+                self.next_gen_left = next_gen_left = None
+                vl = glnext()
+            buf[i] = lvl = vl
+            i += 1
+        return buf.tostring()
+
+    def _get_bytes_stereo(self):
         cdef int i = 0
         buf = array('h', '\x00' * self.chunksize)
         lvl = lvr = None

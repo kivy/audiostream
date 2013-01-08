@@ -1,16 +1,21 @@
-.. Audiostream documentation master file, created by
-   sphinx-quickstart on Mon Dec 17 16:21:47 2012.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
-
 Welcome to Audiostream's documentation!
 =======================================
 
 .. toctree::
    :maxdepth: 2
 
-.. automodule:: audiostream
-   :members:
+Audiostream is a Python extension that provide an easy-to-use API for streaming
+bytes to the speaker, or read an audio input stream. It use SDL + SDL_Mixer for
+streaming the audio out, and use platform-api for reading audio input.
+
+This extension works on Android and iOS as well.
+
+..
+    # .. include:: examples.inc.rst
+    # .. include:: api.inc.rst
+
+.. include:: examples.rst
+.. include:: api.rst
 
 
 Indices and tables

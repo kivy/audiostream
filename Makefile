@@ -5,6 +5,6 @@ all: build
 build:
 	python setup.py build_ext --inplace --force
 
-html: build
+html:
 	-rm -rf docs/build
 	make -C docs html

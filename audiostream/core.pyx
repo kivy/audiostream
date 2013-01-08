@@ -44,28 +44,6 @@ cdef void audio_callback(int chan, void *stream, int l, void *userdata) nogil:
 
 
 cdef class AudioSample:
-    ''':class:`AudioSample` is a class for writing data on the speaker. The data
-    goes first on a RingBuffer, and the buffer is consumed by the speaker,
-    according to the :class:`AudioStream` initialization.
-
-    Example::
-
-        from audiostream import get_output, AudioSample
-        stream = get_output(channels=1, buffersize=1024, rate=22050)
-        sample = AudioSample()
-        stream.add_sample(sample)
-
-        sample.play()
-        while True:
-            # audio stuff, this is not accurate.
-            sample.write("\\x00\\x00\\x00\\x00\\xff\\xff\\xff\\xff")
-
-    You must fill the sample as much as possible, in order to prevent buffer
-    underflow. If you don't give enough data, the speaker will read '\\x00' data.
-
-    You should use :class:`audiostream.sources.ThreadSource` instead.
-    '''
-
     cdef int channel
     cdef Mix_Chunk *raw_chunk
     cdef AudioOutput stream
@@ -85,9 +63,6 @@ cdef class AudioSample:
             self.raw_chunk = NULL
 
     def write(self, bytes chunk):
-        '''Write a data chunk into the ring buffer, it will be consumed later by
-        the speaker.
-        '''
         cdef int lchunk = len(chunk)
         cdef char *cchunk = <char *>chunk
         with nogil:
@@ -115,8 +90,6 @@ cdef class AudioSample:
             SDL_UnlockAudio()
 
     def play(self):
-        '''Play the sample using the internal ring buffer.
-        '''
         cdef int ret
         if self.channel == -1:
             self.alloc()
@@ -253,39 +226,6 @@ class AudioInput(object):
 
 
 def get_input(**kwargs):
-    '''Return a :class:`AudioInput` instance for the current platform
-
-    :Parameters:
-        `callback`: python function
-            If set, the function will be called with the audioinput instance and
-            the buffer as arguments.
-        `source`: str
-            The source must be one available source from the
-            :func:`audiostream.get_input_sources`. This source can change
-            depending the platform.
-        `rate`: int
-            Rate of the audio, default to 44100
-        `channels`: int
-            Number of input channel, can be 1 or 2. Default to 1
-        `encoding`: int
-            Size of each buffer frame, can be 8 or 16. Default to 16.
-        `buffersize`: int
-            Size of the input buffer. If <= 0, if will be automatically sized
-
-    Example::
-
-        from audiostream import get_input
-
-        def mic_callback(buf):
-            print 'got', len(buf)
-
-        # get the default audio input (mic on most cases)
-        mic = get_input(mic_callback)
-        mic.start()
-        sleep(2)
-        mic.stop()
-
-    '''
     IF PLATFORM == 'android':
         from audiostream.platform.plat_android import AndroidAudioInput
         return AndroidAudioInput(callback=callback, **kwargs)
@@ -297,16 +237,6 @@ def get_input(**kwargs):
 
 
 def get_input_sources():
-    '''Return all the available sources for the current platform.
-    The current available sources are:
-    
-    * android: 'camcorder', 'default', 'mic', 'voice_call',
-      'voice_communication', 'voice_downlink', 'voice_recognition',
-      'voice_uplink'
-    * ios: 'default'
-
-    Other platforms are not yet supported.
-    '''
     IF PLATFORM == 'android':
         return ('camcorder', 'default', 'mic', 'voice_call',
                 'voice_communication', 'voice_downlink', 'voice_recognition',
@@ -318,14 +248,4 @@ def get_input_sources():
 
 
 def get_output(**kwargs):
-    '''Return a :class:`AudioOutput` instance for the current platform.
-
-    :Parameters:
-        `rate`: int
-            Rate of the audio, default to 44100
-        `channels`: int
-            Number of channel, minimum 1. Default to 2.
-        `encoding`: int
-            Encoding of the audio, can be one of 8 or 16, default to 16.
-    '''
     return AudioOutput(**kwargs)
