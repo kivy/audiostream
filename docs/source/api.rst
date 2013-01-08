@@ -19,6 +19,7 @@ Core API
     :type rate: integer
     :type channels: integer
     :type encoding: integer
+    :type buffersize: integer
 
     Example::
 
@@ -34,6 +35,11 @@ Core API
     :param channels: Number of channels, minimum 1, default to 2
     :param encoding: Encoding of the audio stream, can be 8 or 16, default to 16
     :param buffersize: Size of the input buffer. If <= 0, it will be automatically sized by the system.
+    :type callback: callable
+    :type source: string
+    :type channels: integer
+    :type encoding: integer
+    :type buffersize: integer
     :rtype: :class:`AudioInput` instance
 
     Example::
@@ -100,10 +106,16 @@ Core API
 
     .. py:method:: add_sample(sample : AudioSample)
 
+        :param sample: sample to manage in the mixer
+        :type sample: :class:`AudioSample`
+
         Add a sample to manage in the internal mixer. This method is usually
         called in the :meth:`AudioSample.start`
 
     .. py:method:: remove_sample(sample : AudioSample)
+
+        :param sample: sample managed by the mixer
+        :type sample: :class:`AudioSample`
 
         Remove a sample from the internal mixer. This method is usually called
         in the :meth:`AudioSample.stop`
@@ -136,6 +148,9 @@ Core API
 
     .. py:method:: write(chunk : bytes)
 
+        :param chunk: Data chunk to write
+        :type chunk: bytes
+
         Write a data chunk into the ring buffer. It will be consumed later by
         the speaker.
 
@@ -160,6 +175,7 @@ Sample generators
     .. py:method:: __init__(stream : AudioOutput)
 
         :param stream: The :class:`AudioOutput` instance to use
+        :type stream: :class:`AudioOutput`
 
     .. py:method:: get_bytes() -> bytes
 
@@ -177,6 +193,8 @@ Sample generators
 
         :param stream: The :class:`AudioOutput` instance to use
         :param frequency: The sin() frequency, for example: 440.
+        :type stream: :class:`AudioOutput`
+        :type frequency: integer
 
 
 .. py:module:: audiostream.sources.puredata
@@ -190,4 +208,6 @@ Sample generators
 
         :param stream: The :class:`AudioOutput` instance to use
         :param patchfile: The patch filename to load with pylibpd
+        :type stream: :class:`AudioOutput`
+        :type patchfile: string
 
