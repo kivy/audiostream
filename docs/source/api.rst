@@ -11,10 +11,10 @@ Core API
     Initialize the engine and get an output device. This method can be used
     only once, usually at the start of your application.
 
-    :key rate: Rate of the audio, default to 44100
-    :key channels: Number of channels, minimum 1, default to 2
-    :key encoding: Encoding of the audio stream, can be 8 or 16, default to 16
-    :key buffersize: Size of the output buffer. Tiny buffer will use consume more CPU, but will be more reactive.
+    :param rate: Rate of the audio, default to 44100
+    :param channels: Number of channels, minimum 1, default to 2
+    :param encoding: Encoding of the audio stream, can be 8 or 16, default to 16
+    :param buffersize: Size of the output buffer. Tiny buffer will use consume more CPU, but will be more reactive.
     :rtype: :class:`AudioOutput` instance
     :type rate: integer
     :type channels: integer
@@ -29,11 +29,11 @@ Core API
 
     Return an :class:`AudioInput` instance.
 
-    :key callback: Callback to call when bytes are available on the input, called from the audio thread.
-    :key source: Source device to read, default to 'default. Depending of the platform, you might read other input source. Check the :func:`get_input_sources` function.
-    :key channels: Number of channels, minimum 1, default to 2
-    :key encoding: Encoding of the audio stream, can be 8 or 16, default to 16
-    :key buffersize: Size of the input buffer. If <= 0, it will be automatically sized by the system.
+    :param callback: Callback to call when bytes are available on the input, called from the audio thread.
+    :param source: Source device to read, default to 'default. Depending of the platform, you might read other input source. Check the :func:`get_input_sources` function.
+    :param channels: Number of channels, minimum 1, default to 2
+    :param encoding: Encoding of the audio stream, can be 8 or 16, default to 16
+    :param buffersize: Size of the input buffer. If <= 0, it will be automatically sized by the system.
     :rtype: :class:`AudioInput` instance
 
     Example::
