@@ -18,6 +18,7 @@ All the current examples require `Kivy <http://kivy.org>` to be executed.
 
 
 ::
+
     sudo python setup.py install
 
 
