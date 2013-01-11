@@ -228,10 +228,10 @@ class AudioInput(object):
 def get_input(**kwargs):
     IF PLATFORM == 'android':
         from audiostream.platform.plat_android import AndroidAudioInput
-        return AndroidAudioInput(callback=callback, **kwargs)
+        return AndroidAudioInput(**kwargs)
     ELIF PLATFORM == 'ios':
         from audiostream.platform.plat_ios import IosAudioInput
-        return IosAudioInput(callback=callback, **kwargs)
+        return IosAudioInput(**kwargs)
     ELSE:
         raise Exception('Unsupported platform')
 
