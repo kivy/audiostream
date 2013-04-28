@@ -2,14 +2,19 @@ __all__ = ('AndroidAudioInput', )
 
 from audiostream import AudioInput
 
+from libc.stdlib cimport malloc, free, calloc
+from libc.string cimport memset, memcpy
+
 include "../config.pxi"
+include "../common.pxi"
+include "../ringbuffer.pxi"
 
 cdef extern from "android_ext.h":
     ctypedef void (*audio_callback_t)(char *, int)
     void audiostream_jni_register()
     void audiostream_cy_register(audio_callback_t)
 
-py_audio_callback = None
+cdef RingBuffer *audio_in_rb = NULL
 AudioIn = None
 
 class AndroidAudioInput(AudioInput):
@@ -39,16 +44,40 @@ class AndroidAudioInput(AudioInput):
                     '(rate={} channels={} encoding={})'.format(self.rate,
                         self.channels, self.encoding))
 
+        # maximum 2 seconds
+        global audio_in_rb
+        if audio_in_rb != NULL:
+            rb_free(audio_in_rb)
+        audio_in_rb = rb_new(self.rate * (self.encoding / 8) * self.channels * 2)
+
     def start(self):
-        global py_audio_callback
-        py_audio_callback = self.callback
         AudioIn.start_recording(self.android_source, self.buffersize, self.rate,
                 self.android_channels, self.android_encoding)
 
     def stop(self):
-        global py_audio_callback
-        py_audio_callback = None
         AudioIn.stop_recording()
+
+    def poll(self, maxiter=10):
+        cdef char *cbuf = NULL
+        cdef bytes buf
+
+        if rb_poll(audio_in_rb) == 0:
+            return False
+
+        callback = self.callback
+        while maxiter > 0:
+            cbuf = rb_read(audio_in_rb, self.buffersize)
+            if cbuf == NULL:
+                break
+            buf = cbuf[:self.buffersize]
+            callback(buf)
+            free(cbuf)
+
+            maxiter -= 1
+            if maxiter == 0:
+                break
+
+        return True
 
     @property
     def android_channels(self):
@@ -77,10 +106,9 @@ class AndroidAudioInput(AudioInput):
 
 
 cdef void cy_audio_callback(char *buf, int buffersize) nogil:
-    with gil:
-        if py_audio_callback is None:
-            return
-        py_audio_callback(buf[:buffersize])
+    if audio_in_rb == NULL:
+        return
+    rb_write(audio_in_rb, buffersize, buf)
 
 cdef void init():
     global AudioIn

@@ -22,6 +22,7 @@ DEF AUDIO_S8 = 0x8008
 from libc.stdlib cimport malloc, free, calloc
 from libc.string cimport memset, memcpy
 from libc.math cimport sin
+#from time import time
 
 include "config.pxi"
 include "common.pxi"
@@ -36,11 +37,11 @@ class AudioException(Exception):
 
 cdef void audio_callback(int chan, void *stream, int l, void *userdata) nogil:
     cdef RingBuffer *rb = <RingBuffer *>userdata
-    cdef char *cbuf = rb_read(rb, l)
-    if cbuf == NULL:
-        return
-    memcpy(stream, <void *>cbuf, l)
-    free(cbuf)
+    cdef int datasize
+
+    datasize = rb_read_into(rb, l, <char *>stream)
+    if datasize < 0:
+        memset(stream, 0, l)
 
 
 cdef class AudioSample:
@@ -223,6 +224,11 @@ class AudioInput(object):
         '''Stop the input to gather data from the source.
         '''
         pass
+
+    def poll(self):
+        '''Call it regulary to read the input stream.
+        '''
+        return False
 
 
 def get_input(**kwargs):

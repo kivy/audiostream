@@ -87,6 +87,58 @@ cdef void rb_write(RingBuffer *rb, int size, char *cbuf) nogil:
     SDL_UnlockMutex(rb.condmtx)
     rb_append(rb, chunk)
 
+cdef int rb_size(RingBuffer *rb) nogil:
+    return rb.size
+
+cdef int rb_maxlen(RingBuffer *rb) nogil:
+    return rb.maxlen
+
+cdef int rb_poll(RingBuffer *rb) nogil:
+    # FIXME we assume that reading / assign an int is atomic.
+    return 1 if rb.size > 0 else 0
+
+cdef int rb_read_into(RingBuffer *rb, int bufsize, char *mem) nogil:
+    cdef char *p = NULL
+    cdef int size = bufsize
+    cdef int datasize = bufsize
+
+    SDL_LockMutex(rb.qmtx)
+    if rb.size < size:
+        size = datasize = rb.size
+    SDL_UnlockMutex(rb.qmtx)
+
+    p = mem
+    while size > 0:
+        chunk = rb_popleft(rb)
+        if chunk == NULL:
+            return -1
+
+        if chunk.size <= size:
+            # full copy ?
+            memcpy(p, chunk.data, chunk.size)
+            p += chunk.size
+            size -= chunk.size
+            rb_chunk_free(chunk)
+
+        else:
+            # partial copy
+            memcpy(p, chunk.data, size)
+            chunk.data += size
+            chunk.size -= size
+            size = 0
+            rb_appendleft(rb, chunk)
+
+    # fill the end with 0
+    if datasize < bufsize:
+        memset(&mem[datasize], 0, bufsize - datasize)
+
+    SDL_LockMutex(rb.condmtx)
+    SDL_CondSignal(rb.cond)
+    SDL_UnlockMutex(rb.condmtx)
+
+    return datasize
+
+
 cdef char *rb_read(RingBuffer *rb, int size) nogil:
     cdef RingBufferChunk *chunk = NULL
     cdef char *mem = NULL, *p = NULL
