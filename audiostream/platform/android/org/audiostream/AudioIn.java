@@ -47,7 +47,7 @@ class AudioIn extends Thread {
 	@Override
 	public void run() {
 		AudioRecord recorder = null;
-		byte[] buffer = null;
+		ByteBuffer buffer = null;
 		int N = 0;
 
 		Log.d(TAG, "Starting audio recording thread");
@@ -61,7 +61,7 @@ class AudioIn extends Thread {
 				this.bufsize = bufsize;
 			Log.d(TAG, String.format("Audio bufsize is %d bytes", bufsize));
 
-			buffer = new byte[bufsize];
+			buffer = ByteBuffer.allocateDirect(bufsize);
 			recorder = new AudioRecord(this.source,
 					this.rate, this.channel, this.encoding, this.bufsize);
 
@@ -71,7 +71,7 @@ class AudioIn extends Thread {
 			// ... loop
 
 			while (!stopped) {
-				N = recorder.read(buffer, 0, buffer.length);
+				N = recorder.read(buffer, bufsize);
 				nativeAudioCallback(buffer, N);
 			}
 
@@ -100,6 +100,6 @@ class AudioIn extends Thread {
 		}
 	}
 
-	public native void nativeAudioCallback(byte[] buffer, int bufsize);
+	public native void nativeAudioCallback(ByteBuffer buffer, int bufsize);
 
 }

@@ -13,19 +13,18 @@ static audio_callback_t audio_callback = NULL;
 static int audiostream_jni_registered = 0;
 
 JNIEXPORT void JNICALL
-audiostream_native_audio_callback(JNIEnv* env, jobject thiz, jbyteArray buf, jint bufsize)
+audiostream_native_audio_callback(JNIEnv* env, jobject thiz, jobject buf, jint bufsize)
 {
 	if ( audio_callback == NULL )
 		return;
 
 	jboolean iscopy;
-    jbyte* bbuf = (*env)->GetByteArrayElements(env, buf, &iscopy);
+    jbyte* bbuf = (*env)->GetDirectBufferAddress(env, buf);
 	audio_callback((char *)bbuf, bufsize);
-	(*env)->ReleaseByteArrayElements(env, buf, bbuf, 0);
 }
 
 static JNINativeMethod methods[] = {
-	{ "nativeAudioCallback", "([BI)V", (void *)&audiostream_native_audio_callback }
+	{ "nativeAudioCallback", "(Ljava/nio/ByteBuffer;I)V", (void *)&audiostream_native_audio_callback }
 };
 
 void audiostream_jni_register() {
