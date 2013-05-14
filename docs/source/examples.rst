@@ -31,7 +31,7 @@ Example to read microphone bytes::
         print 'i got', len(data)
 
     # get the microphone (or from another source if available)
-    mic = get_input(callback_mic)
+    mic = get_input(callback=callback_mic)
     mic.start()
     sleep(5)
     mic.stop()
