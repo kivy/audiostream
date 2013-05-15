@@ -28,7 +28,12 @@ Core API
 
 .. py:function:: get_input(callback : callable, source : string, rate : int, channels : int, encoding : int, buffersize : int) -> `AudioInput` instance
 
-    Return an :class:`AudioInput` instance.
+    Return an :class:`AudioInput` instance. All the data received from the
+    input will be stored in a queue. You need to :meth:`AudioInput.poll` the
+    queue regulary in order to trigger the callback.
+
+    Please note that the `callback` will be called in the same thread as the
+    one that call :meth:`AudioInput.poll`.
 
     :param callback: Callback to call when bytes are available on the input, called from the audio thread.
     :param source: Source device to read, default to 'default. Depending of the platform, you might read other input source. Check the :func:`get_input_sources` function.
@@ -52,7 +57,11 @@ Core API
         # get the default audio input (mic on most cases)
         mic = get_input(callback=mic_callback)
         mic.start()
-        # do something here, like sleep(2)
+
+        while not quit:
+            mic.poll()
+            # do something here, like sleep(2)
+
         mic.stop()
 
     .. note::
@@ -89,6 +98,34 @@ Core API
 
         Stop the input to gather data from the source
 
+    .. py:method:: poll()
+
+        Read the internal queue and dispatch the data through the callback
+
+    .. py:attribute:: callback
+
+        Callback to call when bytes are available on the input, called from the
+        audio thread. The callback must have one parameter for receiving the data.
+
+    .. py:attribute:: encoding
+
+        (readonly) Encoding of the audio, can be 8 or 16, default to 16
+
+    .. py:attribute:: source
+
+        (readonly) Source device to read, default to 'default. Depending of the
+        platform, you might read other input source. Check the
+        :func:`get_input_sources` function.
+
+    .. py:attribute:: channels
+
+        (readonly) Number of channels, minimum 1, default to 2
+
+    .. py:attribute:: buffersize
+
+        (readonly) Size of the input buffer. If <= 0, it will be automatically
+        sized by the system.
+
 
 .. py:class:: AudioOutput(object)
 
@@ -99,9 +136,11 @@ Core API
 
     We also expose multiple `AudioSample` implementation, such as:
 
-    * :class:`audiostream.sources.thread.ThreadSource`: base for implementing a generator that run in a thread
+    * :class:`audiostream.sources.thread.ThreadSource`: base for implementing a
+      generator that run in a thread
     * :class:`audiostream.sources.wave.SineSource`: generate a sine wave
-    * :class:`audiostream.sources.puredata.PatchSource`: sample generator that use a Puredata patch (require pylibpd)
+    * :class:`audiostream.sources.puredata.PatchSource`: sample generator that
+      use a Puredata patch (require pylibpd)
 
 
     .. py:method:: add_sample(sample : AudioSample)
@@ -140,8 +179,9 @@ Core API
             # audio stuff, this is not accurate.
             sample.write("\\x00\\x00\\x00\\x00\\xff\\xff\\xff\\xff")
 
-    You must fill the sample as much as possible, in order to prevent buffer
-    underflow. If you don't give enough data, the speaker will read '\\x00' data.
+    If you don't write enough data (underrun), the library will fill with `\\x00`.
+    If you write too much (overrun), the write method will block, until the
+    data is consumed.
 
     You should use :class:`audiostream.sources.ThreadSource` instead.
 
@@ -161,6 +201,7 @@ Core API
     .. py:method:: stop()
 
         Stop the playback
+
 
 Sample generators
 -----------------
