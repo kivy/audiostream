@@ -12,7 +12,7 @@ from kivy.uix.label import Label
 from kivy.config import Config
 Config.set('graphics', 'maxfps', '30')
 
-from audiostream.core import AudioStream, AudioSample
+from audiostream import get_output
 from audiostream.sources.puredata import PatchSource
 
 from pylibpd import libpd_float, libpd_bang
@@ -40,14 +40,14 @@ class AudioApp(App):
                           allow_stretch=True,)
         label = Label(text="kivy+pd://funpad.pd",
                       font_size=30)
-                          
+
         self.widget = TouchableStack(self)
         self.widget.add_widget(logo_pd)
         self.widget.add_widget(label)
         self.widget.add_widget(logo_kivy)
-        self.stream = AudioStream(channels=CHANNELS, 
-                                  buffersize=BUFSIZE, 
-                                  rate=SAMPLERATE)
+        self.stream = get_output(channels=CHANNELS, 
+                                 buffersize=BUFSIZE, 
+                                 rate=SAMPLERATE)
         self.source = PatchSource(self.stream, 'funpad.pd')
         self.source.start()
 
