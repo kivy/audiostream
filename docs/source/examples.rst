@@ -36,3 +36,7 @@ Example to read microphone bytes::
     sleep(5)
     mic.stop()
 
+.. note::
+
+    To be able to record microphone on Android, you need to have the
+    RECORD_AUDIO permission
