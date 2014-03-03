@@ -1,7 +1,8 @@
-from audiostream import AudioStream, AudioSample
+from audiostream import get_output, AudioSample
 from math import sin, pi
 from struct import pack
 from itertools import *
+
 
 def sine_wave(frequency=440.0, framerate=44100, amplitude=0.5, index=0):
     period = int(framerate / frequency)
@@ -16,11 +17,12 @@ from kivy.uix.gridlayout import GridLayout
 from kivy.uix.button import Button
 from functools import partial
 
+
 class AudioApp(App):
 
     def build(self):
         root = GridLayout(padding=20, spacing=10, cols=4)
-        self.stream = AudioStream(channels=2, buffersize=1024)
+        self.stream = get_output(channels=2, buffersize=1024)
         self.gens = {}
 
         for x in xrange(20):
@@ -75,4 +77,3 @@ class AudioApp(App):
 
 
 AudioApp().run()
-
