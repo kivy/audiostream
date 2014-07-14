@@ -204,7 +204,7 @@ class AudioInput(object):
     def __init__(self, callback=None, source='default', rate=44100, channels=1,
             buffersize=-1, encoding=16):
         super(AudioInput, self).__init__()
-        if encoding not in (8, 16):
+        if encoding not in (8, 16, 32):
             raise Exception('Invalid encoding, must be one of 8, 16')
         if channels not in (1, 2):
             raise Exception('Invalid channels, must be one of 1, 2')
@@ -238,6 +238,9 @@ def get_input(**kwargs):
     ELIF PLATFORM == 'ios':
         from audiostream.platform.plat_ios import IosAudioInput
         return IosAudioInput(**kwargs)
+    ELIF PLATFORM == 'darwin':
+        from audiostream.platform.plat_mac import MacAudioInput
+        return MacAudioInput(**kwargs)
     ELSE:
         raise Exception('Unsupported platform')
 
@@ -248,6 +251,8 @@ def get_input_sources():
                 'voice_communication', 'voice_downlink', 'voice_recognition',
                 'voice_uplink')
     ELIF PLATFORM == 'ios':
+        return ('default', )
+    ELIF PLATFORM == 'mac':
         return ('default', )
     ELSE:
         raise Exception('Unsupported platform')
