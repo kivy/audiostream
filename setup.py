@@ -74,6 +74,10 @@ elif platform == 'ios':
     extensions.append(makeExtension('audiostream.platform.plat_ios',
         [join('audiostream', 'platform', 'ios_ext.m')]))
 
+elif platform == "darwin":
+    include_dirs.append('/usr/local/include/SDL')
+    extensions.append(makeExtension('audiostream.platform.plat_mac',
+        [join('audiostream', 'platform', 'mac_ext.m')]))
 
 config_pxi = join(dirname(__file__), 'audiostream', 'config.pxi')
 with open(config_pxi, 'w') as fd:

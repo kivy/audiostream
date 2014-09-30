@@ -238,6 +238,9 @@ def get_input(**kwargs):
     ELIF PLATFORM == 'ios':
         from audiostream.platform.plat_ios import IosAudioInput
         return IosAudioInput(**kwargs)
+    ELIF PLATFORM == 'darwin':
+        from audiostream.platform.plat_mac import MacAudioInput
+        return MacAudioInput(**kwargs)
     ELSE:
         raise Exception('Unsupported platform')
 
@@ -248,6 +251,8 @@ def get_input_sources():
                 'voice_communication', 'voice_downlink', 'voice_recognition',
                 'voice_uplink')
     ELIF PLATFORM == 'ios':
+        return ('default', )
+    ELIF PLATFORM == 'mac':
         return ('default', )
     ELSE:
         raise Exception('Unsupported platform')
