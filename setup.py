@@ -30,19 +30,19 @@ else:
         raise
 
 # configure the env
-libraries = ['SDL', 'SDL_mixer']
+libraries = ['SDL2', 'SDL2_mixer']
 library_dirs = []
-include_dirs = ['/usr/include/SDL']
+include_dirs = ['/usr/include/SDL2', '/home/kivy/.buildozer/android/platform/android-ndk-r9c/sources/android/support/include']
 extra_objects = []
 extra_compile_args =['-ggdb', '-O2']
 extra_link_args = []
 extensions = []
 
 if not have_cython:
-    libraries = ['sdl', 'sdl_mixer']
+    libraries = ['SDL2', 'SDL2_mixer']
 else:
     include_dirs.append('.')
-    include_dirs.append('/usr/include/SDL')
+    include_dirs.append('/usr/include/SDL2')
 
 # generate an Extension object from its dotted name
 def makeExtension(extName, files=None):
@@ -67,7 +67,7 @@ if platform == 'android':
 elif platform == 'ios':
     include_dirs = [
             join(kivy_ios_root, 'build', 'include'),
-            join(kivy_ios_root, 'build', 'include', 'SDL')]
+            join(kivy_ios_root, 'build', 'include', 'SDL2')]
     extra_link_args = [
         '-L', join(kivy_ios_root, 'build', 'lib'),
         '-undefined', 'dynamic_lookup']
@@ -75,7 +75,7 @@ elif platform == 'ios':
         [join('audiostream', 'platform', 'ios_ext.m')]))
 
 elif platform == "darwin":
-    include_dirs.append('/usr/local/include/SDL')
+    include_dirs.append('/usr/local/include/SDL2')
     extensions.append(makeExtension('audiostream.platform.plat_mac',
         [join('audiostream', 'platform', 'mac_ext.m')]))
 
