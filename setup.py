@@ -30,10 +30,17 @@ else:
         raise
 
 # configure the env
-use_sdl2 = os.environ.get('USE_SDL2')
-libraries = ['SDL2', 'SDL2_mixer'] if use_sdl2 else ['SDL', 'SDL_mixer']
+use_sdl2 = environ.get('USE_SDL2')
+if use_sdl2:
+    include_dirs = ['/usr/include/SDL2']
+    sdl_include_dir = environ.get('SDL2_INCLUDE_DIR')
+    if sdl_include_dir:
+        include_dirs.append(sdl_include_dir)
+    libraries = ['SDL2', 'SDL2_mixer']
+else 
+    libraries = ['SDL', 'SDL_mixer']
+    include_dirs = ['/usr/include/SDL']
 library_dirs = []
-include_dirs = ['/usr/include/SDL2', '/home/kivy/.buildozer/android/platform/android-ndk-r9c/sources/android/support/include'] if use_sdl2 else ['/usr/include/SDL2']
 extra_objects = []
 extra_compile_args =['-ggdb', '-O2']
 extra_link_args = []
