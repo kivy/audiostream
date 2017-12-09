@@ -37,7 +37,7 @@ if use_sdl2:
     if sdl_include_dir:
         include_dirs.append(sdl_include_dir)
     libraries = ['SDL2', 'SDL2_mixer']
-else 
+else:
     libraries = ['SDL', 'SDL_mixer']
     include_dirs = ['/usr/include/SDL']
 library_dirs = []
