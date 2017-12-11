@@ -49,7 +49,8 @@ extensions = []
 if not have_cython:
     libraries = ['SDL2', 'SDL2_mixer'] if use_sdl2 else ['sdl', 'sdl_mixer']
 else:
-    include_dirs.insert(0, '.')
+    include_dirs.append('.')
+    include_dirs.append('/usr/include/SDL')
 
 # generate an Extension object from its dotted name
 def makeExtension(extName, files=None):
