@@ -33,10 +33,11 @@ else:
 # configure the env
 use_sdl2 = environ.get('USE_SDL2')
 if use_sdl2:
-    include_dirs = ['/usr/include/SDL2']
+    include_dirs = []
     sdl_include_dir = environ.get('SDL2_INCLUDE_DIR')
     if sdl_include_dir:
         include_dirs.append(sdl_include_dir)
+    include_dirs.append('/usr/include/SDL2')
     libraries = ['SDL2', 'SDL2_mixer']
 else:
     libraries = ['SDL', 'SDL_mixer']
