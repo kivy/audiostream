@@ -111,9 +111,9 @@ cdef class AudioSample:
 cdef class AudioOutput:
     ''':class:`AudioOutput` class is the base for initializing the internal
     audio.
-    
+
     .. warning::
-    
+
         You can instanciate only one AudioOutput in a process. It must be
         instanciated before any others components of the library.
     '''

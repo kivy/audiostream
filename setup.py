@@ -1,3 +1,4 @@
+from __future__ import print_function
 import sys
 import os
 from os.path import join, dirname
@@ -19,14 +20,14 @@ if kivy_ios_root is not None:
 have_cython = False
 cmdclass = {}
 if platform in ('android', 'ios'):
-    print 'Cython import ignored'
+    print('Cython import ignored')
 else:
     try:
         from Cython.Distutils import build_ext
         have_cython = True
         cmdclass['build_ext'] = build_ext
     except ImportError:
-        print '**** Cython is required to compile audiostream ****'
+        print('**** Cython is required to compile audiostream ****')
         raise
 
 # configure the env
