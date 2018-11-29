@@ -1,4 +1,3 @@
-from __future__ import print_function
 import time
 import wave
 from audiostream import get_input
