@@ -28,7 +28,7 @@ Example to read microphone bytes::
 
     # declare a callback where we'll receive the data
     def callback_mic(data):
-        print 'i got', len(data)
+        print('i got', len(data))
 
     # get the microphone (or from another source if available)
     mic = get_input(callback=callback_mic)

@@ -4,11 +4,14 @@ from audiostream import get_input
 
 frames = []
 
+
 def mic_callback(buf):
-    print 'got', len(buf)
+    print('got', len(buf))
     frames.append(buf)
 
 # get the default audio input (mic on most cases)
+
+
 mic = get_input(callback=mic_callback)
 mic.start()
 

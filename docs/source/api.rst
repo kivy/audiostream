@@ -52,7 +52,7 @@ Core API
         from audiostream import get_input
 
         def mic_callback(buf):
-            print 'got', len(buf)
+            print('got', len(buf))
 
         # get the default audio input (mic on most cases)
         mic = get_input(callback=mic_callback)
@@ -251,4 +251,3 @@ Sample generators
         :param patchfile: The patch filename to load with pylibpd
         :type stream: :class:`AudioOutput`
         :type patchfile: string
-
