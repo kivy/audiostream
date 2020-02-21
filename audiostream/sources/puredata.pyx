@@ -20,11 +20,11 @@ class PatchSource(ThreadSource):
         patchfile = libpd_open_patch(patch, '.')
         blocksize = libpd_blocksize()
         blocksize = blocksize * self.channels
-        inbuf = array.array('h', '\x00' * blocksize)
+        inbuf = array.array('h', b'\x00' * blocksize)
         try:
             i = 0
             while 1:
-                buf = array.array('h', '\x00' * self.buffersize)
+                buf = array.array('h', b'\x00' * self.buffersize)
                 for x in range(self.buffersize / 2):
                     if x % blocksize == 0:
                         outbuf = m.process(inbuf)
