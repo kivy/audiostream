@@ -31,7 +31,7 @@ class SineSource(ThreadSource):
 
     def _get_bytes_mono(self):
         cdef int i = 0
-        buf = array('h', '\x00' * self.chunksize)
+        buf = array('h', b'\x00' * self.chunksize)
         lvl = None
         glnext = self.gen_left.next
         next_gen_left = self.next_gen_left
@@ -48,7 +48,7 @@ class SineSource(ThreadSource):
 
     def _get_bytes_stereo(self):
         cdef int i = 0
-        buf = array('h', '\x00' * self.chunksize)
+        buf = array('h', b'\x00' * self.chunksize)
         lvl = lvr = None
         glnext = self.gen_left.next
         grnext = self.gen_right.next
