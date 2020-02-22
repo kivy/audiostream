@@ -14,7 +14,7 @@ class PatchSource(ThreadSource):
     def get_bytes(self):
         return self.pd_gen.next()
 
-    def pd_wave(self, char* patch):
+    def pd_wave(self, patch):
         cdef int blocksize, i
         m = PdManager(1, self.channels, self.rate, 1)
         patchfile = libpd_open_patch(patch, '.')
