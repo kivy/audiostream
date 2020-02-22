@@ -12,7 +12,7 @@ class PatchSource(ThreadSource):
         self.pd_gen = self.pd_wave(patchfile)
 
     def get_bytes(self):
-        return self.pd_gen.next()
+        return next(self.pd_gen)
 
     def pd_wave(self, char* patch):
         cdef int blocksize, i
