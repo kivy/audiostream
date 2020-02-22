@@ -25,7 +25,7 @@ class PatchSource(ThreadSource):
             i = 0
             while 1:
                 buf = array.array('h', '\x00' * self.buffersize)
-                for x in range(self.buffersize / 2):
+                for x in range(int(self.buffersize / 2)):
                     if x % blocksize == 0:
                         outbuf = m.process(inbuf)
                     buf[x] = outbuf[(x % blocksize)]
