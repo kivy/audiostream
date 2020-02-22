@@ -10,7 +10,7 @@ sinsource = SineSource(stream, 220)
 sinsource.start()
 
 # you can change the frequency of the source during the playtime
-for x in xrange(20):
+for x in range(20):
     sinsource.frequency = 220 + x * 20
     sleep(.1)
 
