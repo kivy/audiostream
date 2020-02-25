@@ -33,15 +33,15 @@ class SineSource(ThreadSource):
         cdef int i = 0
         buf = array('h', b'\x00' * self.chunksize)
         lvl = None
-        glnext = self.gen_left.next
+        glnext = self.gen_left
         next_gen_left = self.next_gen_left
         while i < self.chunksize / 2:
-            vl = glnext()
+            vl = next(glnext)
             if next_gen_left and lvl == 0 and vl > 0:
                 self.gen_left = self.next_gen_left
-                glnext = self.gen_left.next
+                glnext = self.gen_left
                 self.next_gen_left = next_gen_left = None
-                vl = glnext()
+                vl = next(glnext)
             buf[i] = lvl = vl
             i += 1
         return buf.tostring()
@@ -50,23 +50,23 @@ class SineSource(ThreadSource):
         cdef int i = 0
         buf = array('h', b'\x00' * self.chunksize)
         lvl = lvr = None
-        glnext = self.gen_left.next
-        grnext = self.gen_right.next
+        glnext = self.gen_left
+        grnext = self.gen_right
         next_gen_left = self.next_gen_left
         next_gen_right = self.next_gen_right
         while i < self.chunksize / 2:
-            vl = glnext()
-            vr = grnext()
+            vl = next(glnext)
+            vr = next(grnext)
             if next_gen_left and lvl == 0 and vl > 0:
                 self.gen_left = self.next_gen_left
-                glnext = self.gen_left.next
+                glnext = self.gen_left
                 self.next_gen_left = next_gen_left = None
-                vl = glnext()
+                vl = next(glnext)
             if next_gen_right and lvr == 0 and vr > 0:
                 self.gen_right = self.next_gen_right
-                grnext = self.gen_right.next
+                grnext = self.gen_right
                 self.next_gen_right = next_gen_right = None
-                vr = grnext()
+                vr = next(grnext)
             buf[i] = lvl = vl
             buf[i+1] = lvr = vr
             i += 2

@@ -8,7 +8,7 @@ def sine_wave(frequency=440.0, framerate=44100, amplitude=0.5, index=0):
     period = int(framerate / frequency)
     if amplitude > 1.0: amplitude = 1.0
     if amplitude < 0.0: amplitude = 0.0
-    lookup_table = [float(amplitude) * sin(2.0*pi*float(frequency)*(float(i%period)/float(framerate))) for i in xrange(period)]
+    lookup_table = [float(amplitude) * sin(2.0*pi*float(frequency)*(float(i%period)/float(framerate))) for i in range(period)]
     return (lookup_table[(index + i)%period] for i in count(0))
 
 from kivy.app import App
@@ -25,7 +25,7 @@ class AudioApp(App):
         self.stream = get_output(channels=2, buffersize=1024)
         self.gens = {}
 
-        for x in xrange(20):
+        for x in range(20):
             sample = AudioSample(partial(self.audio_callback, x))
             self.stream.add_sample(sample)
             btn = Button(text='Sample %d' % x)
