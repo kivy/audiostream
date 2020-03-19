@@ -12,7 +12,7 @@ class PatchSource(ThreadSource):
         self.pd_gen = self.pd_wave(patchfile)
 
     def get_bytes(self):
-        return self.pd_gen.next()
+        return next(self.pd_gen)
 
     def pd_wave(self, patch):
         cdef int blocksize, i
@@ -20,11 +20,11 @@ class PatchSource(ThreadSource):
         patchfile = libpd_open_patch(patch, '.')
         blocksize = libpd_blocksize()
         blocksize = blocksize * self.channels
-        inbuf = array.array('h', '\x00' * blocksize)
+        inbuf = array.array('h', b'\x00' * blocksize)
         try:
             i = 0
             while 1:
-                buf = array.array('h', '\x00' * self.buffersize)
+                buf = array.array('h', b'\x00' * self.buffersize)
                 for x in range(int(self.buffersize / 2)):
                     if x % blocksize == 0:
                         outbuf = m.process(inbuf)
