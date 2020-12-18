@@ -6,7 +6,12 @@
 #include <android/log.h>
 #include <string.h>
 
-extern JNIEnv *SDL_ANDROID_GetJNIEnv();
+#if SDL_VERSION_ATLEAST(2,0,0)
+    #define SDL_ANDROID_GetJNIEnv SDL_AndroidGetJNIEnv
+#else
+    extern JNIEnv *SDL_ANDROID_GetJNIEnv();
+#endif
+
 
 typedef void (*audio_callback_t)(char *buffer, int bufsize);
 static audio_callback_t audio_callback = NULL;
