@@ -33,6 +33,10 @@ class AudioIn extends Thread {
 		this.encoding = encoding;
 		this.bufsize = bufsize;
 	}
+	
+	static public int getMinBufferSize(int rate, int channel, int encoding) {
+		return AudioRecord.getMinBufferSize(rate, channel, encoding);
+	}
 
 	static public boolean check_configuration(int bufsize, int rate, int channel, int encoding) {
 		int minbufsize = AudioRecord.getMinBufferSize(rate, channel, encoding);
