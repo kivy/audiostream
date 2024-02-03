@@ -29,7 +29,7 @@ class PatchSource(ThreadSource):
                     if x % blocksize == 0:
                         outbuf = m.process(inbuf)
                     buf[x] = outbuf[(x % blocksize)]
-                yield buf.tostring()
+                yield buf.tobytes()
         except StopIteration:
             return
 

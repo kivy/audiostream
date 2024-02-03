@@ -44,7 +44,7 @@ class SineSource(ThreadSource):
                 vl = next(glnext)
             buf[i] = lvl = vl
             i += 1
-        return buf.tostring()
+        return buf.tobytes()
 
     def _get_bytes_stereo(self):
         cdef int i = 0
@@ -70,7 +70,7 @@ class SineSource(ThreadSource):
             buf[i] = lvl = vl
             buf[i+1] = lvr = vr
             i += 2
-        return buf.tostring()
+        return buf.tobytes()
 
     def sine(self, float frequency=440.0, float amplitude=0.5):
         cdef int i = 0
